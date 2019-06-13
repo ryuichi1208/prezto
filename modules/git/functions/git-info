@@ -109,69 +109,69 @@ function git-info {
   setopt LOCAL_OPTIONS
   setopt EXTENDED_GLOB
 
-  local action
-  local action_format
-  local action_formatted
-  local added=0
-  local added_format
-  local added_formatted
-  local ahead=0
-  local ahead_and_behind
-  local ahead_and_behind_cmd
-  local ahead_format
-  local ahead_formatted
-  local ahead_or_behind
-  local behind=0
-  local behind_format
-  local behind_formatted
+  #local action
+  #local action_format
+  #local action_formatted
+  #local added=0
+  #local added_format
+  #local added_formatted
+  #local ahead=0
+  #local ahead_and_behind
+  #local ahead_and_behind_cmd
+  #local ahead_format
+  #local ahead_formatted
+  #local ahead_or_behind
+  #local behind=0
+  #local behind_format
+  #local behind_formatted
   local branch
   local branch_format
   local branch_formatted
   local branch_info
-  local clean
-  local clean_formatted
-  local commit
-  local commit_format
-  local commit_formatted
-  local deleted=0
-  local deleted_format
-  local deleted_formatted
-  local dirty=0
-  local dirty_format
-  local dirty_formatted
-  local ignore_submodules
-  local indexed=0
+  #local clean
+  #local clean_formatted
+  #local commit
+  #local commit_format
+  #local commit_formatted
+  #local deleted=0
+  #local deleted_format
+  #local deleted_formatted
+  #local dirty=0
+  #local dirty_format
+  #local dirty_formatted
+  #local ignore_submodules
+  #local indexed=0
   local indexed_format
-  local indexed_formatted
-  local -A info_formats
-  local info_format
+  #local indexed_formatted
+  #local -A info_formats
+  #local info_format
   local modified=0
   local modified_format
   local modified_formatted
-  local position
-  local position_format
-  local position_formatted
-  local remote
-  local remote_cmd
-  local remote_format
-  local remote_formatted
-  local renamed=0
-  local renamed_format
-  local renamed_formatted
-  local stashed=0
-  local stashed_format
-  local stashed_formatted
-  local status_cmd
-  local status_mode
-  local unindexed=0
-  local unindexed_format
-  local unindexed_formatted
-  local unmerged=0
-  local unmerged_format
-  local unmerged_formatted
-  local untracked=0
-  local untracked_format
-  local untracked_formatted
+  #local position
+  #local position_format
+  #local position_formatted
+  #local remote
+  #local remote_cmd
+  #local remote_format
+  #local remote_formatted
+  #local renamed=0
+  #local renamed_format
+  #local renamed_formatted
+  #local stashed=0
+  #local stashed_format
+  #local stashed_formatted
+  #local status_cmd
+  #local status_mode
+  #local unindexed=0
+  #local unindexed_format
+  #local unindexed_formatted
+  #local unmerged=0
+  #local unmerged_format
+  #local unmerged_formatted
+  #local untracked=0
+  #local untracked_format
+  #local untracked_formatted
 
   # Clean up previous $git_info.
   unset git_info
@@ -194,9 +194,6 @@ function git-info {
   fi
 
   # Return if git-info is disabled.
-  if ! is-true "${$(command git config --bool prompt.showinfo):-true}"; then
-    return 1
-  fi
 
   # Ignore submodule status.
   zstyle -s ':prezto:module:git:status:ignore' submodules 'ignore_submodules'
@@ -291,117 +288,6 @@ function git-info {
   fi
 
   # Get status type.
-  if ! zstyle -t ':prezto:module:git:info' verbose; then
-    # Format indexed.
-    zstyle -s ':prezto:module:git:info:indexed' format 'indexed_format'
-    if [[ -n "$indexed_format" ]]; then
-      ((
-        indexed+=$(
-          command git diff-index \
-            --no-ext-diff \
-            --name-only \
-            --cached \
-            --ignore-submodules=${ignore_submodules:-none} \
-            HEAD \
-            2> /dev/null \
-          | wc -l
-        )
-      ))
-      if (( indexed > 0 )); then
-        zformat -f indexed_formatted "$indexed_format" "i:$indexed"
-      fi
-    fi
-
-    # Format unindexed.
-    zstyle -s ':prezto:module:git:info:unindexed' format 'unindexed_format'
-    if [[ -n "$unindexed_format" ]]; then
-      ((
-        unindexed+=$(
-          command git diff-files \
-            --no-ext-diff \
-            --name-only \
-            --ignore-submodules=${ignore_submodules:-none} \
-            2> /dev/null \
-          | wc -l
-        )
-      ))
-      if (( unindexed > 0 )); then
-        zformat -f unindexed_formatted "$unindexed_format" "I:$unindexed"
-      fi
-    fi
-
-    # Format untracked.
-    zstyle -s ':prezto:module:git:info:untracked' format 'untracked_format'
-    if [[ -n "$untracked_format" ]]; then
-      ((
-        untracked+=$(
-          command git ls-files \
-            --other \
-            --exclude-standard \
-            2> /dev/null \
-          | wc -l
-        )
-      ))
-      if (( untracked > 0 )); then
-        zformat -f untracked_formatted "$untracked_format" "u:$untracked"
-      fi
-    fi
-
-    (( dirty = indexed + unindexed + untracked ))
-  else
-    # Use porcelain status for easy parsing.
-    status_cmd="command git status --porcelain --ignore-submodules=${ignore_submodules:-none}"
-
-    # Get current status.
-    while IFS=$'\n' read line; do
-      # Count added, deleted, modified, renamed, unmerged, untracked, dirty.
-      # T (type change) is undocumented, see http://git.io/FnpMGw.
-      # For a table of scenarii, see http://i.imgur.com/2YLu1.png.
-      [[ "$line" == ([ACDMT][\ MT]|[ACMT]D)\ * ]] && (( added++ ))
-      [[ "$line" == [\ ACMRT]D\ * ]] && (( deleted++ ))
-      [[ "$line" == ?[MT]\ * ]] && (( modified++ ))
-      [[ "$line" == R?\ * ]] && (( renamed++ ))
-      [[ "$line" == (AA|DD|U?|?U)\ * ]] && (( unmerged++ ))
-      [[ "$line" == \?\?\ * ]] && (( untracked++ ))
-      (( dirty++ ))
-    done < <(${(z)status_cmd} 2> /dev/null)
-
-    # Format added.
-    if (( added > 0 )); then
-      zstyle -s ':prezto:module:git:info:added' format 'added_format'
-      zformat -f added_formatted "$added_format" "a:$added"
-    fi
-
-    # Format deleted.
-    if (( deleted > 0 )); then
-      zstyle -s ':prezto:module:git:info:deleted' format 'deleted_format'
-      zformat -f deleted_formatted "$deleted_format" "d:$deleted"
-    fi
-
-    # Format modified.
-    if (( modified > 0 )); then
-      zstyle -s ':prezto:module:git:info:modified' format 'modified_format'
-      zformat -f modified_formatted "$modified_format" "m:$modified"
-    fi
-
-    # Format renamed.
-    if (( renamed > 0 )); then
-      zstyle -s ':prezto:module:git:info:renamed' format 'renamed_format'
-      zformat -f renamed_formatted "$renamed_format" "r:$renamed"
-    fi
-
-    # Format unmerged.
-    if (( unmerged > 0 )); then
-      zstyle -s ':prezto:module:git:info:unmerged' format 'unmerged_format'
-      zformat -f unmerged_formatted "$unmerged_format" "U:$unmerged"
-    fi
-
-    # Format untracked.
-    if (( untracked > 0 )); then
-      zstyle -s ':prezto:module:git:info:untracked' format 'untracked_format'
-      zformat -f untracked_formatted "$untracked_format" "u:$untracked"
-    fi
-  fi
 
   # Format dirty and clean.
   if (( dirty > 0 )); then
@@ -415,24 +301,7 @@ function git-info {
   zstyle -a ':prezto:module:git:info:keys' format 'info_formats'
   for info_format in ${(k)info_formats}; do
     zformat -f REPLY "$info_formats[$info_format]" \
-      "a:$added_formatted" \
-      "A:$ahead_formatted" \
-      "B:$behind_formatted" \
-      "b:$branch_formatted" \
-      "C:$clean_formatted" \
-      "c:$commit_formatted" \
-      "d:$deleted_formatted" \
-      "D:$dirty_formatted" \
-      "i:$indexed_formatted" \
-      "I:$unindexed_formatted" \
-      "m:$modified_formatted" \
-      "p:$position_formatted" \
-      "R:$remote_formatted" \
-      "r:$renamed_formatted" \
-      "s:$action_formatted" \
-      "S:$stashed_formatted" \
-      "U:$unmerged_formatted" \
-      "u:$untracked_formatted"
+      "b:$branch_formatted"
     git_info[$info_format]="$REPLY"
   done
 
